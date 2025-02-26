@@ -7,4 +7,4 @@ cd dir
 sourrce bin/activate
 
 Requirements:
-pip install bs4 python-dateutil
+pip install bs4 python-dateutil flask (for gui)
