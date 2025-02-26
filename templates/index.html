@@ -1,0 +1,101 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>Facebook Archive Viewer</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        #post-list { height: 70vh; overflow-y: auto; border: 1px solid #ddd; padding: 10px; }
+        .post { margin-bottom: 15px; padding: 10px; border-bottom: 1px solid #eee; }
+        .timestamp { color: #666; font-size: 0.9em; margin-bottom: 5px; }
+        .filters { margin-bottom: 20px; }
+        .filter-group { margin-right: 15px; display: inline-block; }
+        #loading { text-align: center; padding: 10px; display: none; }
+    </style>
+</head>
+<body>
+    <h1>Facebook Posts Archive</h1>
+
+    <div class="filters">
+        <div class="filter-group">
+            <input type="text" id="search" placeholder="Search posts...">
+        </div>
+        <div class="filter-group">
+            <input type="date" id="start-date" placeholder="Start date">
+            <input type="date" id="end-date" placeholder="End date">
+        </div>
+        <button onclick="refreshPosts()">Apply Filters</button>
+        <button onclick="exportPosts()">Export CSV</button>
+    </div>
+
+    <div id="post-list"></div>
+    <div id="loading">Loading more posts...</div>
+
+    <script>
+        let currentPage = 1;
+        let isLoading = false;
+        let totalPosts = 0;
+
+        function refreshPosts() {
+            currentPage = 1;
+            document.getElementById('post-list').innerHTML = '';
+            loadPosts();
+        }
+
+        function loadPosts() {
+            if(isLoading) return;
+
+            isLoading = true;
+            document.getElementById('loading').style.display = 'block';
+
+            const params = new URLSearchParams({
+                keyword: document.getElementById('search').value,
+                start_date: document.getElementById('start-date').value,
+                end_date: document.getElementById('end-date').value,
+                page: currentPage
+            });
+
+            fetch(`/posts?${params}`)
+                .then(response => response.json())
+                .then(data => {
+                    const postList = document.getElementById('post-list');
+                    data.posts.forEach(post => {
+                        const div = document.createElement('div');
+                        div.className = 'post';
+                        div.innerHTML = `
+                            <div class="timestamp">
+                                ${new Date(post.timestamp).toLocaleString()}
+                            </div>
+                            <div class="content">${post.content}</div>
+                        `;
+                        postList.appendChild(div);
+                    });
+
+                    totalPosts = data.total;
+                    currentPage++;
+                    isLoading = false;
+                    document.getElementById('loading').style.display = 'none';
+                });
+        }
+
+        function exportPosts() {
+            const params = new URLSearchParams({
+                keyword: document.getElementById('search').value,
+                start_date: document.getElementById('start-date').value,
+                end_date: document.getElementById('end-date').value
+            });
+
+            window.location.href = `/export?${params}`;
+        }
+
+        // Infinite scroll
+        document.getElementById('post-list').addEventListener('scroll', function() {
+            if(this.scrollTop + this.clientHeight >= this.scrollHeight - 100) {
+                loadPosts();
+            }
+        });
+
+        // Initial load
+        refreshPosts();
+    </script>
+</body>
+</html>
